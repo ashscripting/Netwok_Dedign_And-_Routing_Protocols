@@ -1,0 +1,188 @@
+
+!
+hostname Edge1
+!
+vrf definition Mgmt-intf
+ !
+ address-family ipv4
+ exit-address-family
+ !        
+ address-family ipv6
+ exit-address-family
+!
+no ip domain lookup
+!
+ipv6 unicast-routing
+!
+interface Loopback0
+ ip address 3.3.3.3 255.255.255.255
+ ipv6 address FC00:7:3::3/128
+!
+interface GigabitEthernet0/0/0
+ ip address 10.7.8.14 255.255.255.252
+ ip nat inside
+ negotiation auto
+ ipv6 address FE80::3 link-local
+ ipv6 address 2001:DB8:7:9::2/64
+!
+interface GigabitEthernet0/0/1
+ no ip address
+ negotiation auto
+!         
+interface GigabitEthernet0/0/1.100
+ description INET
+ encapsulation dot1Q 100
+ ip address 100.23.7.1 255.255.255.248
+ ip nat outside
+ ipv6 address FE80::3 link-local
+ ipv6 address 2001:DB8:7:ABCD::1/64
+!
+interface GigabitEthernet0/0/1.200
+ description WAN
+ encapsulation dot1Q 200
+ ip address 172.16.7.1 255.255.255.252
+ ipv6 address FE80::3 link-local
+ ipv6 address 2001:DB8:7:CAFE::1/64
+!
+interface GigabitEthernet0/0/2
+ no ip address
+ shutdown
+ negotiation auto
+!
+interface Serial0/1/0
+ bandwidth 64
+ ip address 10.7.8.10 255.255.255.252
+ ip nat inside
+ ipv6 address FE80::3 link-local
+ ipv6 address 2001:DB8:7:B::2/64
+ clock rate 64000
+!
+interface Serial0/1/1
+ bandwidth 64
+ ip address 10.7.8.6 255.255.255.252
+ ip nat inside
+ ipv6 address FE80::3 link-local
+ ipv6 address 2001:DB8:7:A::2/64
+ clock rate 64000
+!
+interface GigabitEthernet0
+ vrf forwarding Mgmt-intf
+ no ip dhcp client request router
+ ip dhcp client client-id ascii FLM242210WL
+ ip address dhcp
+ shutdown
+ negotiation auto
+!
+!
+router eigrp OntarioTech2023
+ !
+ address-family ipv6 unicast autonomous-system 307
+  !
+  af-interface default
+   authentication mode hmac-sha-256 Case$tudy23
+   hello-interval 1
+   hold-time 5
+  exit-af-interface
+  !
+  af-interface GigabitEthernet0/0/1.100
+   shutdown
+  exit-af-interface
+  !
+  af-interface GigabitEthernet0/0/1.200
+   shutdown
+  exit-af-interface
+  !
+  af-interface Loopback0
+   passive-interface
+  exit-af-interface
+  !
+  topology base
+   redistribute static metric 1000000 100 255 1 1500
+  exit-af-topology
+  eigrp router-id 7.3.3.3
+ exit-address-family
+ !
+ address-family ipv4 unicast autonomous-system 307
+  !
+  af-interface default
+   authentication mode hmac-sha-256 Case$tudy23
+   hello-interval 1
+   hold-time 5
+  exit-af-interface
+  !
+  topology base
+   redistribute static metric 1000000 100 255 1 1500
+  exit-af-topology
+  network 3.3.3.3 0.0.0.0
+  network 10.7.8.6 0.0.0.0
+  network 10.7.8.10 0.0.0.0
+  network 10.7.8.14 0.0.0.0
+  eigrp router-id 7.3.3.3
+ exit-address-family
+!
+router bgp 65007
+ bgp router-id 7.3.3.3
+ bgp log-neighbor-changes
+ neighbor 2001:DB8:7:CAFE::2 remote-as 65523
+ neighbor 172.16.7.2 remote-as 65523
+ !
+ address-family ipv4
+  network 10.7.0.0 mask 255.255.248.0
+  network 10.7.8.4 mask 255.255.255.252
+  network 10.7.8.8 mask 255.255.255.252
+  network 10.7.8.12 mask 255.255.255.252
+  network 172.16.7.0 mask 255.255.255.252
+  no neighbor 2001:DB8:7:CAFE::2 activate
+  neighbor 172.16.7.2 activate
+  neighbor 172.16.7.2 route-map SET_LOCAL_PREF in
+ exit-address-family
+ !
+ address-family ipv6
+  network 2001:DB8:7::/61
+  network 2001:DB8:7:8::/64
+  network 2001:DB8:7:9::/64
+  network 2001:DB8:7:A::/64
+  network 2001:DB8:7:B::/64
+  network 2001:DB8:7:ABCD::/64
+  network 2001:DB8:7:CAFE::/64
+  neighbor 2001:DB8:7:CAFE::2 activate
+  neighbor 2001:DB8:7:CAFE::2 route-map SET_LOCAL_PREF in
+ exit-address-family
+!
+ip local policy route-map PBR_L0
+ip forward-protocol nd
+ip http server
+ip http authentication local
+ip http secure-server
+ip http client source-interface GigabitEthernet0
+ip tftp source-interface GigabitEthernet0
+ip nat inside source static 2.2.2.2 100.23.7.3
+ip nat inside source list INSIDE_ACL interface GigabitEthernet0/0/1.100 overload
+ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/0/1.100 100.23.7.2
+!
+ip access-list standard INSIDE_ACL
+ 10 permit 10.7.0.0 0.0.255.255
+!
+ip access-list extended CL-L0
+ 10 permit ip host 3.3.3.3 host 1.1.1.1
+!
+ipv6 route ::/0 GigabitEthernet0/0/1.100 2001:DB8:7:ABCD::2
+!         
+route-map SET_LOCAL_PREF permit 10 
+ set local-preference 234
+!
+route-map PBR_L0 permit 10 
+ match ip address CL-L0
+ set interface Serial0/1/1
+!
+control-plane
+!
+line con 0
+ exec-timeout 0 0
+ stopbits 1
+line aux 0
+ stopbits 1
+line vty 0 4
+ login
+!
+end

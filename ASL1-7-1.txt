@@ -1,0 +1,227 @@
+
+!
+hostname ALS1
+!
+vrf definition Mgmt-vrf
+ !
+ address-family ipv4
+ exit-address-family
+ !
+ address-family ipv6
+ exit-address-family
+!
+vtp mode off
+!
+ip routing
+!
+no ip domain lookup
+!
+ipv6 unicast-routing
+!
+vlan 10
+ name DATA
+!
+vlan 20
+ name VOICE
+!
+vlan 30
+ name MGMT
+!
+interface Loopback0
+ ip address 7.7.7.7 255.255.255.255
+ ipv6 address FC00:7:7::7/128
+ ospfv3 7 ipv4 area 7
+ ospfv3 7 ipv6 area 7
+!
+interface GigabitEthernet0/0
+ vrf forwarding Mgmt-vrf
+ ip dhcp client client-id ascii JAE242417MY
+ ip address dhcp
+ shutdown
+ negotiation auto
+!
+interface GigabitEthernet1/0/1
+ switchport trunk allowed vlan 10,20,30
+ switchport mode trunk
+!
+interface GigabitEthernet1/0/2
+ shutdown
+!
+interface GigabitEthernet1/0/3
+ switchport trunk allowed vlan 10,20,30
+ switchport mode trunk
+!
+interface GigabitEthernet1/0/4
+ shutdown
+!
+interface GigabitEthernet1/0/5
+ shutdown
+!
+interface GigabitEthernet1/0/6
+ shutdown
+!
+interface GigabitEthernet1/0/7
+ shutdown
+!
+interface GigabitEthernet1/0/8
+ shutdown
+!
+interface GigabitEthernet1/0/9
+ shutdown 
+!
+interface GigabitEthernet1/0/10
+ shutdown
+!
+interface GigabitEthernet1/0/11
+ shutdown
+!
+interface GigabitEthernet1/0/12
+ shutdown
+!
+interface GigabitEthernet1/0/13
+ switchport access vlan 10
+ switchport mode access
+ switchport voice vlan 20
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/14
+ switchport access vlan 10
+ switchport mode access
+ switchport voice vlan 20
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/15
+ switchport access vlan 10
+ switchport mode access
+ switchport voice vlan 20
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/16
+ switchport access vlan 10
+ switchport mode access
+ switchport voice vlan 20
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/17
+ switchport access vlan 10
+ switchport mode access
+ switchport voice vlan 20
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/18
+ switchport access vlan 10
+ switchport mode access
+ switchport voice vlan 20
+ spanning-tree portfast
+!         
+interface GigabitEthernet1/0/19
+ switchport access vlan 10
+ switchport mode access
+ switchport voice vlan 20
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/20
+ switchport access vlan 10
+ switchport mode access
+ switchport voice vlan 20
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/21
+ switchport access vlan 10
+ switchport mode access
+ switchport voice vlan 20
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/22
+ switchport access vlan 10
+ switchport mode access
+ switchport voice vlan 20
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/23
+ switchport access vlan 10
+ switchport mode access
+ switchport voice vlan 20
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/24
+ switchport access vlan 10
+ switchport mode access
+ switchport voice vlan 20
+ spanning-tree portfast
+!
+interface GigabitEthernet1/1/1
+ shutdown
+!
+interface GigabitEthernet1/1/2
+ shutdown
+!
+interface GigabitEthernet1/1/3
+ shutdown
+!
+interface GigabitEthernet1/1/4
+ shutdown
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+interface Vlan10
+ description DATA VLAN Interface
+ ip address 10.7.0.3 255.255.254.0
+ ipv6 address FE80::A1 link-local
+ ipv6 address 2001:DB8:7:1::3/64
+ ospfv3 7 ipv6 area 7
+ ospfv3 7 ipv4 area 7
+!
+interface Vlan20
+ description VOICE VLAN Interface
+ ip address 10.7.2.3 255.255.254.0
+ ipv6 address FE80::A1 link-local
+ ipv6 address 2001:DB8:7:2::3/64
+ ospfv3 7 ipv4 area 7
+ ospfv3 7 ipv6 area 7
+!
+interface Vlan30
+ description MGMT VLAN Interface
+ ip address 10.7.4.3 255.255.255.192
+ ipv6 address FE80::A1 link-local
+ ipv6 address 2001:DB8:7:3::3/64
+ ospfv3 7 ipv6 area 7
+ ospfv3 7 ipv4 area 7
+!
+router ospfv3 7
+ router-id 7.7.7.7
+ auto-cost reference-bandwidth 20000
+ area 7 nssa no-summary
+ !
+ address-family ipv4 unicast
+  passive-interface Vlan10
+  passive-interface Vlan20
+  passive-interface Loopback0
+ exit-address-family
+ !
+ address-family ipv6 unicast
+  passive-interface Vlan10
+  passive-interface Vlan20
+  passive-interface Loopback0
+ exit-address-family
+!
+ip forward-protocol nd
+ip http server
+ip http authentication local
+ip http secure-server
+ip http client source-interface GigabitEthernet0/0
+ip tftp source-interface GigabitEthernet0/0
+!
+line con 0
+ exec-timeout 0 0
+ stopbits 1
+line aux 0
+ stopbits 1
+line vty 0 4
+ login
+line vty 5 15
+ login
+!
+end

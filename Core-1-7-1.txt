@@ -1,0 +1,223 @@
+
+!
+hostname Core1
+!
+boot-start-marker
+boot-end-marker
+!
+vrf definition Mgmt-intf
+ !
+ address-family ipv4
+ exit-address-family
+ !        
+ address-family ipv6
+ exit-address-family
+!
+no ip domain lookup
+!
+ipv6 unicast-routing
+!
+interface Loopback0
+ ip address 1.1.1.1 255.255.255.255
+ ipv6 address FC00:7:1::1/128
+ ospfv3 7 ipv4 area 0
+ ospfv3 7 ipv6 area 0
+!
+interface GigabitEthernet0/0/0
+ ip address 10.7.8.1 255.255.255.252
+ negotiation auto
+ ipv6 address FE80::1 link-local
+ ipv6 address 2001:DB8:7:8::1/64
+!
+interface GigabitEthernet0/0/1
+ ip address 10.7.4.65 255.255.255.252
+ negotiation auto
+ ipv6 address FE80::1 link-local
+ ipv6 address 2001:DB8:7::1/64
+ ospfv3 7 ipv4 area 0
+ ospfv3 7 ipv6 area 0
+!
+interface GigabitEthernet0/0/2
+ no ip address
+ shutdown
+ negotiation auto
+!
+interface Serial0/1/0
+ bandwidth 64
+ ip address 10.7.8.9 255.255.255.252
+ ipv6 address FE80::1 link-local
+ ipv6 address 2001:DB8:7:B::1/64
+!
+interface Serial0/1/1
+ bandwidth 64
+ ip address 10.7.8.5 255.255.255.252
+ ipv6 address FE80::1 link-local
+ ipv6 address 2001:DB8:7:A::1/64
+!         
+interface GigabitEthernet0
+ vrf forwarding Mgmt-intf
+ no ip dhcp client request router
+ ip dhcp client client-id ascii FLM242611XE
+ ip address dhcp
+ shutdown
+ negotiation auto
+!
+router eigrp OntarioTech2023
+ !
+ address-family ipv4 unicast autonomous-system 307
+  !
+  af-interface default
+   authentication mode hmac-sha-256 Case$tudy23
+   hello-interval 1
+   hold-time 5
+  exit-af-interface
+  !
+  af-interface GigabitEthernet0/0/0
+   summary-address 10.7.0.0 255.255.248.0
+  exit-af-interface
+  !       
+  af-interface GigabitEthernet0/0/1
+   passive-interface
+  exit-af-interface
+  !
+  af-interface Serial0/1/0
+   summary-address 10.7.0.0 255.255.248.0
+  exit-af-interface
+  !
+  af-interface Serial0/1/1
+   summary-address 10.7.0.0 255.255.248.0
+  exit-af-interface
+  !
+  topology base
+   redistribute ospfv3 7 metric 1000000 100 255 1 1500 route-map LO-IPV4-RM
+  exit-af-topology
+  network 1.1.1.1 0.0.0.0
+  network 10.7.8.1 0.0.0.0
+  network 10.7.8.5 0.0.0.0
+  network 10.7.8.9 0.0.0.0
+  network 10.7.8.65 0.0.0.0
+  eigrp router-id 7.1.1.1
+ exit-address-family
+ !        
+ address-family ipv6 unicast autonomous-system 307
+  !
+  af-interface default
+   authentication mode hmac-sha-256 Case$tudy23
+   hello-interval 1
+   hold-time 5
+  exit-af-interface
+  !
+  af-interface Loopback0
+   passive-interface
+  exit-af-interface
+  !
+  af-interface GigabitEthernet0/0/1
+   passive-interface
+  exit-af-interface
+  !
+  af-interface GigabitEthernet0/0/0
+   summary-address 2001:DB8:7::/61
+  exit-af-interface
+  !
+  af-interface Serial0/1/0
+   summary-address 2001:DB8:7::/61
+  exit-af-interface
+  !
+  af-interface Serial0/1/1
+   summary-address 2001:DB8:7::/61
+  exit-af-interface
+  !
+  topology base
+   redistribute ospf 7 metric 1000000 100 255 1 1500 route-map LO-IPV6-RM
+  exit-af-topology
+  eigrp router-id 7.1.1.1
+ exit-address-family
+!
+router ospfv3 7
+ router-id 7.1.1.1
+ auto-cost reference-bandwidth 20000
+ !
+ address-family ipv4 unicast
+  redistribute eigrp 307 route-map RT-LO-IPV4-RM
+  passive-interface Loopback0
+  default-information originate
+  router-id 7.1.1.1
+  area 0 range 10.7.4.64 255.255.255.252
+ exit-address-family
+ !        
+ address-family ipv6 unicast
+  passive-interface Loopback0
+  default-information originate
+  redistribute eigrp 307 route-map RT-LO-IPV6-RM
+ exit-address-family
+!
+ip local policy route-map PBR_L0
+ip forward-protocol nd
+ip http server
+ip http authentication local
+ip http secure-server
+ip http client source-interface GigabitEthernet0
+ip tftp source-interface GigabitEthernet0
+!
+ip access-list standard LO-IPV4
+ 10 permit 5.5.5.5
+ 20 permit 6.6.6.6
+ 30 permit 7.7.7.7
+ 40 permit 8.8.8.8
+ip access-list standard RT-LO-IPV4
+ 10 permit 1.1.1.1
+ 20 permit 2.2.2.2
+ 30 permit 3.3.3.3
+ 40 permit 4.4.4.4
+!
+ip access-list extended CL-L0
+ 10 permit ip host 1.1.1.1 host 3.3.3.3
+!
+route-map RT-LO-IPV4-RM deny 10 
+ match ip address RT-LO-IPV4
+!
+route-map RT-LO-IPV4-RM permit 20 
+!
+route-map RT-LO-IPV6-RM deny 10 
+ match ipv6 address RT-LO-IPV6
+!
+route-map RT-LO-IPV6-RM permit 20 
+!
+route-map PBR_L0 permit 10 
+ match ip address CL-L0
+ set interface Serial0/1/0
+!
+route-map LO-IPV6-RM deny 10 
+ match ipv6 address LO-IPV6
+!
+route-map LO-IPV6-RM permit 20 
+!
+route-map LO-IPV4-RM deny 10 
+ match ip address LO-IPV4
+!
+route-map LO-IPV4-RM permit 20 
+!
+ipv6 access-list LO-IPV6
+ sequence 10 permit ipv6 host FC00:7:5::5 any
+ sequence 20 permit ipv6 host FC00:7:6::6 any
+ sequence 30 permit ipv6 host FC00:7:7::7 any
+ sequence 40 permit ipv6 host FC00:7:8::8 any
+!
+ipv6 access-list RT-LO-IPV6
+ sequence 10 permit ipv6 host FC00:7:1::1 any
+ sequence 20 permit ipv6 host FC00:7:2::2 any
+ sequence 30 permit ipv6 host FC00:7:3::3 any
+ sequence 40 permit ipv6 host FC00:7:4::4 any
+!
+control-plane
+!
+line con 0
+ exec-timeout 0 0
+ stopbits 1
+line aux 0
+ stopbits 1
+line vty 0 4
+ login
+!
+end
+

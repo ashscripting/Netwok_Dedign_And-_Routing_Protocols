@@ -1,0 +1,117 @@
+
+!
+hostname Core2
+!
+vrf definition Mgmt-intf
+ !
+ address-family ipv4
+ exit-address-family
+ !        
+ address-family ipv6
+ exit-address-family
+!
+no ip domain lookup
+!
+ipv6 unicast-routing
+!
+interface Loopback0
+ ip address 2.2.2.2 255.255.255.255
+ ipv6 address FC00:7:2::2/128
+ ipv6 address FC00:7:3::3/128
+!
+interface GigabitEthernet0/0/0
+ ip address 10.7.8.2 255.255.255.252
+ negotiation auto
+ ipv6 address FE80::2 link-local
+ ipv6 address 2001:DB8:7:8::2/64
+!
+interface GigabitEthernet0/0/1
+ ip address 10.7.8.13 255.255.255.252
+ negotiation auto
+ ipv6 address FE80::2 link-local
+ ipv6 address 2001:DB8:7:9::1/64
+!
+interface GigabitEthernet0/0/1.100
+ description INET
+ encapsulation dot1Q 100
+ ip address 100.23.7.1 255.255.255.248
+ ipv6 address FE80::3 link-local
+ ipv6 address 2001:DB8:7:ABCD::1/64
+!
+interface GigabitEthernet0/0/1.200
+ description WAN
+ encapsulation dot1Q 200
+ ip address 172.16.7.1 255.255.255.252
+ ipv6 address FE80::3 link-local
+ ipv6 address 2001:DB8:7:CAFE::1/64
+!
+interface GigabitEthernet0/0/2
+ no ip address
+ shutdown
+ negotiation auto
+!
+interface GigabitEthernet0
+ vrf forwarding Mgmt-intf
+ no ip dhcp client request router
+ ip dhcp client client-id ascii FLM242611XA
+ ip address dhcp
+ shutdown
+ negotiation auto
+!
+router eigrp OntarioTech2023
+ !
+ address-family ipv6 unicast autonomous-system 307
+  !
+  af-interface default
+   authentication mode hmac-sha-256 Case$tudy23
+   hello-interval 1
+   hold-time 5
+  exit-af-interface
+  !
+  topology base
+  exit-af-topology
+  eigrp router-id 7.2.2.2
+ exit-address-family
+ !
+ address-family ipv4 unicast autonomous-system 307
+  !
+  af-interface default
+   authentication mode hmac-sha-256 Case$tudy23
+   hello-interval 1
+   hold-time 5
+  exit-af-interface
+  !
+  af-interface Loopback0
+   passive-interface
+  exit-af-interface
+  !
+  topology base
+   offset-list 7 in 20 GigabitEthernet0/0/1 
+  exit-af-topology
+  network 2.2.2.2 0.0.0.0
+  network 10.7.8.2 0.0.0.0
+  network 10.7.8.13 0.0.0.0
+  eigrp router-id 7.2.2.2
+ exit-address-family
+!
+ip forward-protocol nd
+ip http server
+ip http authentication local
+ip http secure-server
+ip http client source-interface GigabitEthernet0
+ip tftp source-interface GigabitEthernet0
+!
+ip access-list standard 7
+ 10 permit 10.7.8.4 0.0.0.3
+!
+control-plane
+!
+line con 0
+ exec-timeout 0 0
+ stopbits 1
+line aux 0
+ stopbits 1
+line vty 0 4
+ login    
+!
+end
